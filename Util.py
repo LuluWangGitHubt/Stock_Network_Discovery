@@ -8,15 +8,19 @@ import pandas as pd
 import requests
 import yfinance as yf
 from sklearn.decomposition  import PCA
+import networkx as nx
 
-def get_data(top,start,end):
+def get_data(top,start,end,symbols = None):
 
     # download the symbols of stocks
     df = pd.read_html(requests.get('https://www.slickcharts.com/sp500',
-                        headers={'User-agent': 'Mozilla/5.0'}).text)[0]
-    symbols = list(df['Symbol'].values[:top])
-    names = list(df['Company'].values[:top])
-    print(f"The top {top} symbols in S&P 500 by weights order is: {symbols}")
+                            headers={'User-agent': 'Mozilla/5.0'}).text)[0]
+    if symbols == None: # if user does not specify stocks 
+        symbols = list(df['Symbol'].values[:top])
+        names = list(df['Company'].values[:top])
+        print(f"The top {top} symbols in S&P 500 by weights order is: {symbols}")
+    else:   # if user specify stocks
+        names = list(df[df['Symbol'].isin(symbols)]['Company'].values)
 
     # downloading data
     data = yf.download(symbols, start=start, end=end)
@@ -84,12 +88,11 @@ def create_G(binary_adj):
     edge_index = torch.tensor(binary_adj).to_sparse().indices()
     edges = list(zip(edge_index[0].tolist(),edge_index[1].tolist()))
 
-    import networkx as nx
     G = nx.Graph()
     pos = nx.get_node_attributes(G, "pos")
-    G.add_edges_from(edges)
     G.add_nodes_from(np.arange(len(binary_adj)))
-
+    G.add_edges_from(edges)
+    
     return G
 
 def plot_network(G,embedding,names,title):
